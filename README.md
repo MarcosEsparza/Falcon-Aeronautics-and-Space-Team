@@ -1,6 +1,6 @@
 # Falcon Aeronautics & Space Team
 
-This repository contains the design files, simulations, CAD models, and technical documentation for the Falcon Aeronautics & Space Team entry in the 2026 Spaceport America Cup (10k COTS). It serves as the central location for all design, analysis, testing, and reporting work.
+This repository contains the design files, simulations, CAD models, and technical documentation for the Falcon Aeronautics & Space Team entry in the 2026 Spaceport America and Lonestar Cup. It serves as the central location for all design, analysis, testing, and reporting work.
 
 ## Repository Structure
 - cad/ – SolidWorks/Fusion parts, assemblies, and STEP exports

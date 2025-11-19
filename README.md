@@ -14,5 +14,5 @@ Team Guidelines:
 -Upload stable CAD versions only; export STEP files after major updates.
 -Version or date OpenRocket and MATLAB files when updating.
 
-Project Summary: 
+Project Summary:   
 Falcon Aeronautics and Space Team is developing a 10,000-ft COTS rocket featuring an aluminum fin can, fiberglass airframe, dual-deploy recovery, MATLAB analysis, and detailed simulation and mass-tracking work. This repository supports consistent team collaboration and smooth technical report development.

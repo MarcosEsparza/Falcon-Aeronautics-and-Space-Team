@@ -1,4 +1,4 @@
-# FAST – Falcon Aeronautics & Space Team
+# Falcon Aeronautics & Space Team
 
 This repository contains the design files, simulations, CAD models, and documentation for the Falcon Aeronautics & Space Team entry in the 2026 Spaceport America Cup (10k COTS). It serves as the central location for all design, analysis, and reporting work.
 

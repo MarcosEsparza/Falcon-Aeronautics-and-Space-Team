@@ -28,29 +28,29 @@ P0_psi  = P0_psf / 144;    % [psi]
 L_lapse = 0.00356616;      % [R/ft]
 
 %% -------------------- IMPORT TRAJECTORY FROM OPENROCKET ---------------
-csvPath = 'IREC.csv';   % <-- make sure this filename matches your export
+csvPath = 'IRECFinFlutter.csv';   % or 'IREC.csv' if that's the name
 
 T = readtable(csvPath, ...
     'FileType','text', ...
     'CommentStyle','#', ...
     'ReadVariableNames',false);
 
-T.Properties.VariableNames = {'t','h','V'};  % Time, Altitude, Velocity
+T.Properties.VariableNames = {'t','h','V','SM','TWR','M'};
 
 % Max velocity and altitude at that point
 [V_max, idxMax] = max(T.V);
 h_max           = T.h(idxMax);
 
 %% -------------------- ROCKET GEOMETRY (UPDATE AS NEEDED) --------------
-D_body_in   = 4.02;        % [in] body OD from OR
-L_rocket_in = 84.0;        % [in] approximate overall length
+D_body_in   = 4.06;        % [in] body OD from OR
+L_rocket_in = 78.0;        % [in] approximate overall length
 
 % Nose length = exposed length from tip to body-tube joint (NOT coupler)
 L_nose_in   = 16.0;        % [in] TODO: measure actual nose and update
 
 % Mass properties from OpenRocket
-CG_from_tip_in_OR = 54.62;    % [in] CG (prepped)
-CP_from_tip_in_OR = 65.208;    % [in] CP
+CG_from_tip_in_OR = 50.784;    % [in] CG (prepped)
+CP_from_tip_in_OR = 60.674;    % [in] CP
 SM_calibers_OR    = (CP_from_tip_in_OR - CG_from_tip_in_OR) / D_body_in;
 
 % Use OR CG as reference CG for Barrowman comparison
@@ -58,13 +58,13 @@ CG_from_tip_in = CG_from_tip_in_OR;
 
 % OPTIONAL (for Barrowman CP cross-check):
 % Distance from nose tip to fin root leading edge along body tube.
-Xf_le_from_tip_in = 70.5;      % [in] estimate; update when known
+Xf_le_from_tip_in = 64;      % [in] estimate; update when known
 
 %% -------------------- MAX Q AEROSPACE 4" FIN GEOMETRY -----------------
 % Actual polygon points from your Freeform Fin Set (inches):
 % (0,0) -> (9.69,5) -> (12.5,3.74) -> (13.26,0) -> back to (0,0)
-x = [0,    9.69, 12.5, 13.26];
-y = [0,    5.00, 3.74, 0.00];
+x = [0,    9.8, 12.125, 13.25];
+y = [0,    5.00, 5, 0.00];
 
 % Planform area via shoelace formula
 x_shift = circshift(x, -1);
@@ -73,7 +73,7 @@ S_fin_in2 = 0.5 * abs(sum(x .* y_shift - y .* x_shift));   % [in^2]
 
 span_in = max(y);                 % [in] max height off body = 5.0
 n_fins  = 3;                      % 3-fin configuration
-t_in    = 0.118;                  % [in] thickness (aluminum)
+t_in    = 0.157;                  % [in] thickness (aluminum)
 
 % Equivalent trapezoid for flutter calc:
 cr_in   = max(x) - min(x);        % [in] root chord ~ 13.26 (0 to 13.26)

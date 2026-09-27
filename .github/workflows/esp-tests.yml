@@ -1,14 +1,16 @@
-name: ESP tests
+name: ESP quality checks
 
 on:
   pull_request:
-    paths:
-      - 'esp-design-intelligence/**'
-      - '.github/workflows/esp-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: esp-design-intelligence
@@ -17,7 +19,33 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            esp-design-intelligence/requirements.txt
+            esp-design-intelligence/requirements-dev.txt
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements-dev.txt
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Compile Python sources
+        run: python -m compileall -q app.py engineering.py history.py tests
       - name: Run tests
-        run: python -m pytest
+        run: python -m pytest -q
+      - name: Start Streamlit
+        run: |
+          cd ..
+          python -m streamlit run esp-design-intelligence/app.py --server.headless true --server.address 127.0.0.1 --server.port 8501 > /tmp/esp-streamlit.log 2>&1 &
+          echo $! > /tmp/esp-streamlit.pid
+      - name: Verify startup and capture screenshots
+        run: python tests/capture_screenshots.py
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp-browser-screenshots
+          path: esp-design-intelligence/artifacts/screenshots/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Show Streamlit log on failure
+        if: failure()
+        run: cat /tmp/esp-streamlit.log

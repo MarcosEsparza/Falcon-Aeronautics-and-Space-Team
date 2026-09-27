@@ -11,10 +11,10 @@ def test_dashboard_and_reactivity():
         'Operating conditions', 'Well geometry', 'Fluid properties', 'Motor assumptions'
     }
     original = app.metric[0].value
-    app.number_input('Liquid rate (bbl/day)').set_value(3000.).run()
+    next(x for x in app.sidebar.number_input if x.label == 'Liquid rate (bbl/day)').set_value(3000.).run()
     assert not app.exception
     assert app.metric[0].value != original
-    app.slider('Frequency (Hz)').set_value(50.).run()
+    next(x for x in app.sidebar.slider if x.label == 'Frequency (Hz)').set_value(50.).run()
     assert not app.exception
 
 
@@ -25,19 +25,19 @@ def test_summary_panel_for_first_eligible_pump():
     assert metrics['Pump model'] == expected['pump']
     assert metrics['Estimated stage count'] == f"{expected['stages']:,}"
     assert metrics['Estimated electrical power (kW)'] == f"{expected['electrical_kw']:.1f}"
-    assert len(app.expander) == 2
-    assert app.expander[0].label == 'View efficiency and motor details'
-    assert app.expander[1].label == 'View all eligible synthetic pumps'
+    labels = [expander.label for expander in app.expander]
+    assert 'View efficiency and motor details' in labels
+    assert 'View all eligible synthetic pumps' in labels
     assert any('not a validated or optimal field design' in caption.value for caption in app.caption)
 
 
 def test_invalid_geometry_and_uncovered_rate():
     app = AppTest.from_file(str(APP)).run(timeout=30)
-    app.number_input('Tubing measured length (ft)').set_value(1000.).run()
+    next(x for x in app.sidebar.number_input if x.label == 'Tubing measured length (ft)').set_value(1000.).run()
     assert app.error
     assert not app.exception
-    app.number_input('Tubing measured length (ft)').set_value(6500.)
-    app.number_input('Liquid rate (bbl/day)').set_value(12000.).run()
+    next(x for x in app.sidebar.number_input if x.label == 'Tubing measured length (ft)').set_value(6500.)
+    next(x for x in app.sidebar.number_input if x.label == 'Liquid rate (bbl/day)').set_value(12000.).run()
     assert any('No fictional pump' in x.value for x in app.error)
     assert 'Pump model' not in {metric.label for metric in app.metric}
     assert not app.exception

@@ -82,4 +82,20 @@ Pump head = elevation rise + pressure-head difference + friction head. Hydraulic
 
 Before field design: verify inflow/drawdown, multiphase outflow, free gas and gas separation, viscosity corrections, net positive suction head, motor cooling, temperature, cable/drive losses, casing clearance, thrust, shaft/stage limits, materials and sand handling. These are not evaluated here.''')
     st.json(load)
-st.download_button('Download design JSON', json.dumps({'synthetic_demo': True, 'well': asdict(well), 'frequency_hz': frequency, 'motor_efficiency': motor_eff, 'motor_margin': margin, 'duty': load, 'candidates': candidates}, indent=2), 'esp_screening_design.json', 'application/json')
+st.download_button(
+    'Download design JSON',
+    json.dumps(
+        {
+            'synthetic_demo': True,
+            'well': asdict(well),
+            'frequency_hz': frequency,
+            'motor_efficiency': motor_eff,
+            'motor_margin': margin,
+            'duty': load,
+            'candidates': candidates,
+        },
+        indent=2,
+    ),
+    'esp_screening_design.json',
+    'application/json',
+)

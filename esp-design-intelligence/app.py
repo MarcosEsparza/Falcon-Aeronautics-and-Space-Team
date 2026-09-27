@@ -50,19 +50,40 @@ with sizing:
     st.caption('Screened at 70–120% of speed-adjusted best efficiency point flow. Ranked by electrical power at the requested flow.')
     if candidates:
         selected = candidates[0]
-        st.subheader('Synthetic pump recommendation')
-        st.caption('First eligible result from the existing screening engine. Synthetic demonstration only; not a validated or optimal field design.')
-        summary = st.container(border=True)
-        summary_metrics = summary.columns(3)
-        summary_metrics[0].metric('Pump model', selected['pump'])
-        summary_metrics[1].metric('Estimated stage count', f"{selected['stages']:,}")
-        summary_metrics[2].metric('Estimated electrical power (kW)', f"{selected['electrical_kw']:.1f}")
-        with summary.expander('View efficiency and motor details'):
-            details = summary.columns(2)
-            details[0].metric('Modeled pump efficiency', f"{selected['efficiency']:.1%}")
-            details[1].metric('Minimum motor shaft-power rating (kW)', f"{selected['minimum_motor_rating_kw']:.1f}")
+
+        st.subheader('Synthetic screening candidate')
+
+        with st.container(border=True):
+            st.metric('Pump model', selected['pump'])
+
+            st.markdown(
+                f"**{selected['stages']:,} stages** · "
+                f"**{selected['electrical_kw']:.1f} kW** "
+                "modeled electrical input"
+            )
+
+            st.caption(
+                'First eligible result from the existing '
+                'screening engine. Synthetic demonstration '
+                'only; not a validated or optimal field design.'
+            )
+
+        with st.expander('Efficiency and motor details'):
+            st.metric(
+                'Modeled pump efficiency',
+                f"{selected['efficiency']:.1%}",
+            )
+
+            st.metric(
+                'Minimum motor shaft-power rating (kW)',
+                f"{selected['minimum_motor_rating_kw']:.1f}",
+            )
+
         with st.expander('View all eligible synthetic pumps'):
-            st.dataframe(pd.DataFrame(candidates), hide_index=True)
+            st.dataframe(
+                pd.DataFrame(candidates),
+                hide_index=True,
+            )
     elif load['head_m'] > 0:
         st.error('No fictional pump covers this rate at the selected frequency. Change the target or extend the catalog.')
     st.caption('Stage rounding adds head. Actual operating flow requires a pump/system-curve intersection; motor rating is shaft power plus margin, not electrical input.')

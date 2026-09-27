@@ -12,17 +12,21 @@ st.caption('Electric submersible pump screening • Synthetic demonstration • 
 st.warning('All historical wells and pump curves are fictional. Outputs are preliminary single-phase screening estimates, not field-ready designs.')
 with st.sidebar:
     st.header('Well and operating target')
-    flow = st.number_input('Liquid rate (bbl/day)', 100., 12000., 2500., 100.)
-    depth = st.number_input('Pump vertical depth (ft)', 100., 15000., 6000., 100.)
-    length = st.number_input('Tubing measured length (ft)', 100., 20000., 6500., 100.)
-    diameter = st.number_input('Tubing internal diameter (in)', 1., 6., 2.5, .1)
-    sg = st.number_input('Liquid specific gravity', .5, 1.5, .95, .01)
-    viscosity = st.number_input('Dynamic viscosity (cP)', .1, 100., 1., .1)
-    whp = st.number_input('Wellhead pressure (psig)', 0., 3000., 150., 25.)
-    pip = st.number_input('Pump intake pressure (psig)', 0., 6000., 900., 25.)
-    frequency = st.slider('Frequency (Hz)', 40., 70., 60.)
-    motor_eff = st.slider('Motor efficiency', .70, 1., .90, .01)
-    margin = st.slider('Motor shaft-power margin', 0., .50, .15, .01)
+    with st.expander('Operating conditions', expanded=True):
+        flow = st.number_input('Liquid rate (bbl/day)', 100., 12000., 2500., 100.)
+        whp = st.number_input('Wellhead pressure (psig)', 0., 3000., 150., 25.)
+        pip = st.number_input('Pump intake pressure (psig)', 0., 6000., 900., 25.)
+        frequency = st.slider('Frequency (Hz)', 40., 70., 60.)
+    with st.expander('Well geometry'):
+        depth = st.number_input('Pump vertical depth (ft)', 100., 15000., 6000., 100.)
+        length = st.number_input('Tubing measured length (ft)', 100., 20000., 6500., 100.)
+        diameter = st.number_input('Tubing internal diameter (in)', 1., 6., 2.5, .1)
+    with st.expander('Fluid properties'):
+        sg = st.number_input('Liquid specific gravity', .5, 1.5, .95, .01)
+        viscosity = st.number_input('Dynamic viscosity (cP)', .1, 100., 1., .1)
+    with st.expander('Motor assumptions'):
+        motor_eff = st.slider('Motor efficiency', .70, 1., .90, .01)
+        margin = st.slider('Motor shaft-power margin', 0., .50, .15, .01)
 well = Well(flow, depth, length, diameter, sg, viscosity, whp, pip)
 try:
     load = duty(well)
@@ -40,24 +44,46 @@ if 2300 < load['reynolds'] < 4000:
     st.warning('Transitional pipe flow: friction is interpolated and uncertain.')
 if viscosity > 5:
     st.warning('Viscosity exceeds the synthetic history range. Pump curves have no viscosity correction.')
-sizing, analogs, assumptions = st.tabs(['Engineering sizing', 'AI-assisted historical comparison', 'Method and limits'])
+sizing, analogs, assumptions = st.tabs(['Sizing', 'History', 'Method'])
 with sizing:
     st.subheader('Eligible fictional pumps')
     st.caption('Screened at 70–120% of speed-adjusted best efficiency point flow. Ranked by electrical power at the requested flow.')
     if candidates:
         selected = candidates[0]
-        st.subheader('Synthetic pump recommendation')
-        st.caption('First eligible result from the existing screening engine. Synthetic demonstration only; not a validated or optimal field design.')
-        summary = st.container(border=True)
-        summary_top = summary.columns(2)
-        summary_top[0].metric('Pump model', selected['pump'])
-        summary_top[1].metric('Estimated stage count', f"{selected['stages']:,}")
-        summary_bottom = summary.columns(3)
-        summary_bottom[0].metric('Modeled pump efficiency', f"{selected['efficiency']:.1%}")
-        summary_bottom[1].metric('Estimated electrical power (kW)', f"{selected['electrical_kw']:.1f}")
-        summary_bottom[2].metric('Minimum motor shaft-power rating (kW)', f"{selected['minimum_motor_rating_kw']:.1f}")
+
+        st.subheader('Synthetic screening candidate')
+
+        with st.container(border=True):
+            st.metric('Pump model', selected['pump'])
+
+            st.markdown(
+                f"**{selected['stages']:,} stages** · "
+                f"**{selected['electrical_kw']:.1f} kW** "
+                "modeled electrical input"
+            )
+
+            st.caption(
+                'First eligible result from the existing '
+                'screening engine. Synthetic demonstration '
+                'only; not a validated or optimal field design.'
+            )
+
+        with st.expander('Efficiency and motor details'):
+            st.metric(
+                'Modeled pump efficiency',
+                f"{selected['efficiency']:.1%}",
+            )
+
+            st.metric(
+                'Minimum motor shaft-power rating (kW)',
+                f"{selected['minimum_motor_rating_kw']:.1f}",
+            )
+
         with st.expander('View all eligible synthetic pumps'):
-            st.dataframe(pd.DataFrame(candidates), hide_index=True)
+            st.dataframe(
+                pd.DataFrame(candidates),
+                hide_index=True,
+            )
     elif load['head_m'] > 0:
         st.error('No fictional pump covers this rate at the selected frequency. Change the target or extend the catalog.')
     st.caption('Stage rounding adds head. Actual operating flow requires a pump/system-curve intersection; motor rating is shaft power plus margin, not electrical input.')

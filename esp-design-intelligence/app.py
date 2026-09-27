@@ -68,18 +68,18 @@ with analogs:
     k = st.slider('Historical neighbors', 3, 20, 8)
     neighbors, votes, outside = compare(well, history, k)
     st.write(f'Nearest-neighbor suggestion at historical 60 Hz: **{votes.index[0]}** ({votes.iloc[0]:.0%} of neighbor labels).')
-    st.caption('This is an interpretable machine-learning classifier over synthetic engineering labels. Vote share is not confidence, reliability, or probability of success. Current-frequency engi[...]
+    st.caption('This is an interpretable machine-learning classifier over synthetic engineering labels. Vote share is not confidence, reliability, or probability of success. Current-frequency engineering eligibility takes precedence.')
     if outside:
         st.warning('Outside synthetic feature coverage: ' + ', '.join(outside))
     st.dataframe(neighbors[['well_id', 'pump', 'distance', 'flow_bpd', 'depth_ft', 'sg', 'viscosity_cp', 'intake_psi', 'tubing_id_in', 'head_m']], hide_index=True)
     st.download_button('Download synthetic history CSV', history.to_csv(index=False), 'synthetic_history.csv', 'text/csv')
 with assumptions:
-    st.markdown('''Steady incompressible liquid with constant density and viscosity. Pump intake and wellhead pressures use the same gauge reference. Vertical depth sets elevation head; measured t[...]
+    st.markdown('''Steady incompressible liquid with constant density and viscosity. Pump intake and wellhead pressures use the same gauge reference. Vertical depth sets elevation head; measured tubing length sets friction. Equal endpoint velocity heads; minor losses omitted.
 
-Darcy–Weisbach friction uses 64/Re for laminar flow and the Haaland approximation for turbulent flow, with interpolation between Reynolds numbers 2300 and 4000. Tubing roughness is fixed at 0.04[...]
+Darcy–Weisbach friction uses 64/Re for laminar flow and the Haaland approximation for turbulent flow, with interpolation between Reynolds numbers 2300 and 4000. Tubing roughness is fixed at 0.045 mm.
 
 Pump head = elevation rise + pressure-head difference + friction head. Hydraulic power = density × gravity × flow × head. Fictional pump curves use affinity scaling at constant geometry.
 
-Before field design: verify inflow/drawdown, multiphase outflow, free gas and gas separation, viscosity corrections, net positive suction head, motor cooling, temperature, cable/drive losses, casi[...]
+Before field design: verify inflow/drawdown, multiphase outflow, free gas and gas separation, viscosity corrections, net positive suction head, motor cooling, temperature, cable/drive losses, casing clearance, thrust, shaft/stage limits, materials and sand handling. These are not evaluated here.''')
     st.json(load)
-st.download_button('Download design JSON', json.dumps({'synthetic_demo': True, 'well': asdict(well), 'frequency_hz': frequency, 'motor_efficiency': motor_eff, 'motor_margin': margin, 'duty': load,[...]
+st.download_button('Download design JSON', json.dumps({'synthetic_demo': True, 'well': asdict(well), 'frequency_hz': frequency, 'motor_efficiency': motor_eff, 'motor_margin': margin, 'duty': load, 'candidates': candidates}, indent=2), 'esp_screening_design.json', 'application/json')

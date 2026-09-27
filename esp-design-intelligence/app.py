@@ -45,8 +45,19 @@ with sizing:
     st.subheader('Eligible fictional pumps')
     st.caption('Screened at 70–120% of speed-adjusted best efficiency point flow. Ranked by electrical power at the requested flow.')
     if candidates:
-        st.dataframe(pd.DataFrame(candidates), hide_index=True)
-        st.success(f"Screening candidate: {candidates[0]['pump']}, {candidates[0]['stages']} stages")
+        selected = candidates[0]
+        st.subheader('Synthetic pump recommendation')
+        st.caption('First eligible result from the existing screening engine. Synthetic demonstration only; not a validated or optimal field design.')
+        summary = st.container(border=True)
+        summary_top = summary.columns(2)
+        summary_top[0].metric('Pump model', selected['pump'])
+        summary_top[1].metric('Estimated stage count', f"{selected['stages']:,}")
+        summary_bottom = summary.columns(3)
+        summary_bottom[0].metric('Modeled pump efficiency', f"{selected['efficiency']:.1%}")
+        summary_bottom[1].metric('Estimated electrical power (kW)', f"{selected['electrical_kw']:.1f}")
+        summary_bottom[2].metric('Minimum motor shaft-power rating (kW)', f"{selected['minimum_motor_rating_kw']:.1f}")
+        with st.expander('View all eligible synthetic pumps'):
+            st.dataframe(pd.DataFrame(candidates), hide_index=True)
     elif load['head_m'] > 0:
         st.error('No fictional pump covers this rate at the selected frequency. Change the target or extend the catalog.')
     st.caption('Stage rounding adds head. Actual operating flow requires a pump/system-curve intersection; motor rating is shaft power plus margin, not electrical input.')
@@ -82,20 +93,4 @@ Pump head = elevation rise + pressure-head difference + friction head. Hydraulic
 
 Before field design: verify inflow/drawdown, multiphase outflow, free gas and gas separation, viscosity corrections, net positive suction head, motor cooling, temperature, cable/drive losses, casing clearance, thrust, shaft/stage limits, materials and sand handling. These are not evaluated here.''')
     st.json(load)
-st.download_button(
-    'Download design JSON',
-    json.dumps(
-        {
-            'synthetic_demo': True,
-            'well': asdict(well),
-            'frequency_hz': frequency,
-            'motor_efficiency': motor_eff,
-            'motor_margin': margin,
-            'duty': load,
-            'candidates': candidates,
-        },
-        indent=2,
-    ),
-    'esp_screening_design.json',
-    'application/json',
-)
+st.download_button('Download design JSON', json.dumps({'synthetic_demo': True, 'well': asdict(well), 'frequency_hz': frequency, 'motor_efficiency': motor_eff, 'motor_margin': margin, 'duty': load, 'candidates': candidates}, indent=2), 'esp_screening_design.json', 'application/json')

@@ -126,3 +126,45 @@ Keep real data in company-approved locations and never in this repository.
 The pre-existing project ZIP is preserved; do not modify or replace it with
 data. If confidential data is ever pushed, follow the data owner's incident
 process; deleting a file or commit may not erase copies or history.
+
+## Obsidian dashboard visual redesign
+
+The Streamlit interface uses an original dark engineering-workspace presentation,
+inspired by the card hierarchy and dense, responsive KPI/chart layout of the
+[free Pixelcave dark dashboard example](https://pixelcave.com/freebies/dark-app-dashboard-tailwind).
+No template code, fonts, image assets, network calls, or fictional chart values
+are copied into this repository. The reviewed design mockup was visual guidance,
+not a source of validated calculations.
+
+The dashboard retains the existing interactive well inputs, actual calculated
+design snapshot, eligible synthetic screening result, system-head overlay,
+power and efficiency curves, History and Method tabs, synthetic CSV download,
+and design JSON export. Its fourth chart compares only **actually eligible**
+synthetic families by the pre-existing electrical-input ranking; when only one
+family is eligible it explicitly says so. The synthetic equipment results must
+not be treated as field-qualified ESP designs, and the pump/system overlay is
+not a solved operating point. The engineering and history modules are unchanged.
+
+The stylesheet is a checked-in local `dashboard.css`. Desktop and mobile browser
+checks require all four sizing charts to render, verify the new visual theme,
+and confirm no horizontal overflow. Review screenshots before approving the PR.
+
+### Layout verification
+
+The screening result is a compact, data-driven band above a full-width 2×2
+chart grid. This deliberately gives engineering axes more room than the first
+draft's narrow side-by-side recommendation panel. The rationale appears below
+the charts rather than obscuring them. Altair family legends are bottom-aligned.
+
+Because Streamlit scrolls within its main pane, screenshot capture saves both
+the initial viewport (`desktop.png`, `mobile.png`) and a second scrolled view
+(`desktop-charts.png`, `mobile-charts.png`) to allow real visual review.
+
+### Engineering metric readability
+
+The five screening outputs use short, fully explained display labels to prevent
+truncated values on ordinary laptop screens. They retain the same calculations:
+rounded estimated stages, modeled pump efficiency, shaft horsepower, modeled
+electrical input, and minimum motor shaft-power rating with margin. The last
+two represent different quantities. The browser test rejects clipped numeric
+metric values at both tested viewport sizes.

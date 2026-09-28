@@ -45,20 +45,21 @@ def test_selection_panel_matches_first_eligible_pump():
     app = run_app()
     expected = size_pumps(Well())[0]
     metrics = {metric.label: metric.value for metric in app.metric}
-    assert metrics['Estimated stage count'] == f"{expected['stages']:,}"
+    assert metrics['Estimated stages'] == f"{expected['stages']:,}"
     assert metrics['Modeled efficiency'] == f"{expected['efficiency']:.1%}"
     assert metrics['Shaft horsepower'] == f"{expected['shaft_kw'] * 1.34102209:.1f} hp"
-    assert metrics['Estimated electrical input'] == f"{expected['electrical_kw']:.1f} kW"
-    assert metrics['Minimum motor shaft-power rating'] == f"{expected['minimum_motor_rating_kw']:.1f} kW"
+    assert metrics['Electrical input'] == f"{expected['electrical_kw']:.1f} kW"
+    assert metrics['Motor shaft rating'] == f"{expected['minimum_motor_rating_kw']:.1f} kW"
     assert any(expected['pump'] in item.value for item in app.markdown)
     assert any('not a validated field design' in caption.value for caption in app.caption)
 
 
-def test_three_curve_views_and_requested_duty_are_present():
+def test_four_chart_dashboard_and_requested_duty_are_present():
     app = run_app()
     headings = {item.value for item in app.subheader}
-    assert {'Pump and system head', 'Pump shaft horsepower', 'Modeled pump efficiency'} <= headings
-    assert len(app.get('vega_lite_chart')) >= 3
+    assert {'Pump and system head', 'Pump shaft horsepower', 'Modeled pump efficiency',
+            'Eligible family comparison'} <= headings
+    assert len(app.get('vega_lite_chart')) >= 4
     expected = duty(Well())
     assert any(
         'fixed installed stage count' in caption.value
@@ -68,6 +69,23 @@ def test_three_curve_views_and_requested_duty_are_present():
         for caption in app.caption
     )
     assert expected['head_m'] > 0
+
+
+def test_screening_panel_stays_tied_to_real_calculated_values():
+    app = run_app()
+    expected = size_pumps(Well())[0]
+    assert any(expected['pump'] in item.value for item in app.markdown)
+    assert any('First in the unchanged eligible-family' in caption.value
+               for caption in app.caption)
+    assert len(app.get('vega_lite_chart')) == 5  # Four sizing charts plus History chart.
+
+
+def test_dashboard_visual_assets_are_local_only():
+    css = (PROJECT / 'dashboard.css').read_text()
+    assert '#081214' in css
+    assert '#42ddb0' in css
+    assert '@import' not in css
+    assert 'url(' not in css
 
 
 def test_eligible_pump_table_has_human_readable_columns():
@@ -89,7 +107,7 @@ def test_invalid_geometry_and_uncovered_rate():
     next(x for x in app.sidebar.number_input if x.label == 'Tubing measured length (ft)').set_value(6500.)
     next(x for x in app.sidebar.number_input if x.label == 'Liquid rate (bbl/day)').set_value(12000.).run()
     assert any('No fictional pump' in x.value for x in app.error)
-    assert 'Estimated stage count' not in {metric.label for metric in app.metric}
+    assert 'Estimated stages' not in {metric.label for metric in app.metric}
     assert 'View all eligible synthetic pumps' not in [item.label for item in app.expander]
     assert 'System required head' in {heading.value for heading in app.subheader}
     assert 'Pump and system head' not in {heading.value for heading in app.subheader}
@@ -111,4 +129,4 @@ def test_history_language_does_not_call_vote_share_confidence():
 
 def test_root_streamlit_theme_uses_supported_dark_palette():
     config = tomllib.loads(THEME.read_text())
-    assert config == {'theme': {'base': 'dark', 'primaryColor': '#29A77D', 'backgroundColor': '#101A1C', 'secondaryBackgroundColor': '#1A292B', 'textColor': '#F3F7F5', 'font': 'sans serif'}}
+    assert config == {'theme': {'base': 'dark', 'primaryColor': '#42DDB0', 'backgroundColor': '#081214', 'secondaryBackgroundColor': '#122124', 'textColor': '#EFF8F5', 'font': 'sans serif'}}

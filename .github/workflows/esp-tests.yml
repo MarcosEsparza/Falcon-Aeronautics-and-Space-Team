@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -25,6 +29,10 @@ jobs:
             esp-design-intelligence/requirements-dev.txt
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Lint Python sources with Ruff
+        run: ruff check --output-format=github .
+      - name: Audit installed Python dependencies
+        run: python -m pip_audit --local
       - name: Install Chromium
         run: python -m playwright install --with-deps chromium
       - name: Compile Python sources
@@ -49,3 +57,33 @@ jobs:
       - name: Show Streamlit log on failure
         if: failure()
         run: cat /tmp/esp-streamlit.log
+
+  credential-scan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan PR commits without printing candidate credentials
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set +e
+          docker run --rm -v "$PWD:/repo:ro" -w /repo \
+            ghcr.io/trufflesecurity/trufflehog:3.97.9 \
+            git file:///repo/ --since-commit "$BASE_SHA" --branch "$HEAD_SHA" \
+            --no-verification --results=unverified --fail --fail-on-scan-errors --no-update \
+            --json > /tmp/esp-secret-findings.json 2> /tmp/esp-secret-scanner.log
+          result=$?
+          if [ "$result" -eq 183 ]; then
+            echo "::error::Potential credentials found. Review locally; findings are withheld from public CI logs."
+            exit 1
+          elif [ "$result" -ne 0 ]; then
+            echo "::error::Credential scan could not complete (exit $result)."
+            exit 1
+          fi
+          echo "No credential-shaped findings in the scanned PR commits."

@@ -126,3 +126,25 @@ Keep real data in company-approved locations and never in this repository.
 The pre-existing project ZIP is preserved; do not modify or replace it with
 data. If confidential data is ever pushed, follow the data owner's incident
 process; deleting a file or commit may not erase copies or history.
+
+## Obsidian dashboard visual redesign
+
+The Streamlit interface uses an original dark engineering-workspace presentation,
+inspired by the card hierarchy and dense, responsive KPI/chart layout of the
+[free Pixelcave dark dashboard example](https://pixelcave.com/freebies/dark-app-dashboard-tailwind).
+No template code, fonts, image assets, network calls, or fictional chart values
+are copied into this repository. The reviewed design mockup was visual guidance,
+not a source of validated calculations.
+
+The dashboard retains the existing interactive well inputs, actual calculated
+design snapshot, eligible synthetic screening result, system-head overlay,
+power and efficiency curves, History and Method tabs, synthetic CSV download,
+and design JSON export. Its fourth chart compares only **actually eligible**
+synthetic families by the pre-existing electrical-input ranking; when only one
+family is eligible it explicitly says so. The synthetic equipment results must
+not be treated as field-qualified ESP designs, and the pump/system overlay is
+not a solved operating point. The engineering and history modules are unchanged.
+
+The stylesheet is a checked-in local `dashboard.css`. Desktop and mobile browser
+checks require all four sizing charts to render, verify the new visual theme,
+and confirm no horizontal overflow. Review screenshots before approving the PR.

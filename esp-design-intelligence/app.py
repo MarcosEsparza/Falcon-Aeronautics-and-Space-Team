@@ -1,6 +1,7 @@
 """Run with: streamlit run app.py."""
 from dataclasses import asdict
 import json
+from pathlib import Path
 
 import altair as alt
 import pandas as pd
@@ -10,11 +11,31 @@ from engineering import Well, duty, size_pumps, pump_point
 from history import synthetic_history, compare
 
 st.set_page_config(page_title='ESP Design Intelligence', page_icon='⚙', layout='wide')
+st.markdown(
+    '<style>' + Path(__file__).with_name('dashboard.css').read_text(encoding='utf-8') + '</style>',
+    unsafe_allow_html=True,
+)
+st.markdown('<div class="workspace-eyebrow">ESP / ENGINEERING WORKSPACE <span>•</span> SYNTHETIC DEMO</div>',
+            unsafe_allow_html=True)
 st.title('ESP Design Intelligence')
-st.caption('Electric submersible pump screening · Synthetic engineering demonstration')
+st.caption('PRESCRIBED-FLOW SCREENING  /  SYSTEM SENSITIVITY  /  SYNTHETIC HISTORY')
 st.warning('Fictional historical wells and pumps are not validated field designs.')
 
+
+def chart_style(chart, height=280):
+    """Apply one consistent presentation style without modifying chart data."""
+    return (chart.properties(height=height, padding={'left': 1, 'top': 8, 'right': 6, 'bottom': 1})
+            .configure_view(strokeOpacity=0)
+            .configure_axis(gridColor='#23353a', domainColor='#466168',
+                            tickColor='#466168', labelColor='#c3d6d4',
+                            titleColor='#dbece8', labelFontSize=11, titleFontSize=12)
+            .configure_legend(labelColor='#d2e2df', titleColor='#8ea9a8',
+                              labelFontSize=10, orient='bottom', symbolSize=85)
+            .configure(background='transparent'))
+
 with st.sidebar:
+    st.markdown('**DESIGN INPUTS**')
+    st.caption('Edit conditions to recalculate the screening result.')
     st.header('Well and operating target')
     with st.expander('Operating conditions', expanded=True):
         flow = st.number_input('Liquid rate (bbl/day)', 100., 12000., 2500., 100.)
@@ -41,7 +62,8 @@ except ValueError as exc:
     st.stop()
 
 st.subheader('Design snapshot')
-summary = st.columns(4)
+st.caption(f'CURRENT OPERATING TARGET  /  {flow:,.0f} bbl/day  /  {frequency:.0f} Hz  /  synthetic equipment')
+summary = st.columns(4, gap='small')
 summary[0].metric('Required head', f"{load['head_m']:.0f} m")
 summary[1].metric('Target rate', f'{flow:,.0f} bbl/day')
 summary[2].metric('Friction head', f"{load['friction_m']:.0f} m")
@@ -65,23 +87,12 @@ with sizing:
                             'System required head (m)': duty(point_well)['head_m']})
     systems = pd.DataFrame(system_rows)
     requested = pd.DataFrame([{'Liquid rate (bbl/day)': flow, 'Required head (m)': load['head_m']}])
-    x = alt.X('Liquid rate (bbl/day):Q', title='Liquid rate (bbl/day)', scale=alt.Scale(zero=False))
-    system_head = alt.Chart(systems).mark_line(point=True, color='#F3F7F5', strokeDash=[6,4]).encode(x=x, y=alt.Y('System required head (m):Q', title='Head (m)'),
+    x = alt.X('Liquid rate (bbl/day):Q', title='Liquid rate (bbl/day)', scale=alt.Scale(zero=False), axis=alt.Axis(tickCount=5))
+    system_head = alt.Chart(systems).mark_line(point=True, color='#a4c0c1', strokeDash=[6,4]).encode(x=x, y=alt.Y('System required head (m):Q', title='Head (m)'),
         tooltip=[alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('System required head (m):Q', format=',.1f')])
-    requested_point = alt.Chart(requested).mark_point(filled=True, size=130, color='#F3F7F5', stroke='#29A77D', strokeWidth=2).encode(x=x, y=alt.Y('Required head (m):Q'), tooltip=[alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Required head (m):Q', format=',.1f')])
+    requested_point = alt.Chart(requested).mark_point(filled=True, size=135, color='#eaf8f3', stroke='#42ddb0', strokeWidth=2).encode(x=x, y=alt.Y('Required head (m):Q'), tooltip=[alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Required head (m):Q', format=',.1f')])
     if candidates:
         selected = candidates[0]
-        with st.container(border=True):
-            st.markdown(f"### {selected['pump']}")
-            first = st.columns(2)
-            first[0].metric('Estimated stage count', f"{selected['stages']:,}")
-            first[1].metric('Modeled efficiency', f"{selected['efficiency']:.1%}")
-            second = st.columns(2)
-            second[0].metric('Shaft horsepower', f"{selected['shaft_kw'] * 1.34102209:.1f} hp")
-            second[1].metric('Estimated electrical input', f"{selected['electrical_kw']:.1f} kW")
-            st.metric('Minimum motor shaft-power rating', f"{selected['minimum_motor_rating_kw']:.1f} kW")
-            st.caption('First eligible synthetic screening result; not a validated field design.')
-
         curve_rows = []
         bep_rows = []
         for candidate in candidates:
@@ -103,24 +114,120 @@ with sizing:
                              'Modeled efficiency (%)': bep_point['efficiency'] * 100})
         curves = pd.DataFrame(curve_rows)
         beps = pd.DataFrame(bep_rows)
-        color = alt.Color('Pump model:N', legend=alt.Legend(title='Synthetic family'))
+        color = alt.Color(
+            'Pump model:N',
+            scale=alt.Scale(
+                domain=[candidate['pump'] for candidate in candidates],
+                range=['#42ddb0', '#89a9ae', '#657f86'][:len(candidates)],
+            ),
+            legend=alt.Legend(title='Synthetic family'),
+        )
         pump_head = alt.Chart(curves).mark_line(strokeWidth=3).encode(x=x, y=alt.Y('Pump head (m):Q', title='Head (m)', scale=alt.Scale(zero=True)), color=color,
             tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Pump head (m):Q', format=',.1f')])
         bep_head = alt.Chart(beps).mark_point(shape='diamond', size=110).encode(x=x, y='Pump head (m):Q', color=color, tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f')])
-        st.subheader('Pump and system head')
-        st.altair_chart((pump_head + system_head + requested_point + bep_head).properties(height=330), use_container_width=True)
-        requested_rule = alt.Chart(pd.DataFrame({'Liquid rate (bbl/day)': [flow]})).mark_rule(color='#F3F7F5', strokeDash=[4,4]).encode(x=x)
-        bep_power = alt.Chart(beps).mark_point(shape='diamond', size=110).encode(x=x, y='Shaft horsepower (hp):Q', color=color)
-        power = alt.Chart(curves).mark_line(strokeWidth=3).encode(x=x, y=alt.Y('Shaft horsepower (hp):Q', title='Shaft horsepower (hp)', scale=alt.Scale(zero=True)), color=color,
-            tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Shaft horsepower (hp):Q', format=',.1f')])
-        st.subheader('Pump shaft horsepower')
-        st.altair_chart((power + bep_power + requested_rule).properties(height=260), use_container_width=True)
-        bep_eff = alt.Chart(beps).mark_point(shape='diamond', size=110).encode(x=x, y='Modeled efficiency (%):Q', color=color)
-        efficiency_chart = alt.Chart(curves).mark_line(strokeWidth=3).encode(x=x, y=alt.Y('Modeled efficiency (%):Q', title='Modeled efficiency (%)', scale=alt.Scale(zero=False)), color=color,
-            tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Modeled efficiency (%):Q', format='.1f')])
-        st.subheader('Modeled pump efficiency')
-        st.altair_chart((efficiency_chart + bep_eff + requested_rule).properties(height=260), use_container_width=True)
-        st.caption(f"Curves use each pump's fixed installed stage count and {frequency:.0f} Hz frequency. Diamonds mark BEP; the dashed vertical line marks requested flow. Only the prescribed 70–120% envelope is plotted. The pump/system overlay is illustrative—not a validated well operating point or nodal-analysis result.")
+        requested_rule = alt.Chart(pd.DataFrame({'Liquid rate (bbl/day)': [flow]})).mark_rule(
+            color='#afcdcc', strokeDash=[4, 4]).encode(x=x)
+        bep_power = alt.Chart(beps).mark_point(shape='diamond', size=110).encode(
+            x=x, y='Shaft horsepower (hp):Q', color=color)
+        power = alt.Chart(curves).mark_line(strokeWidth=3).encode(
+            x=x,
+            y=alt.Y('Shaft horsepower (hp):Q', title='Shaft horsepower (hp)',
+                    scale=alt.Scale(zero=True)),
+            color=color,
+            tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'),
+                     alt.Tooltip('Shaft horsepower (hp):Q', format=',.1f')],
+        )
+        bep_eff = alt.Chart(beps).mark_point(shape='diamond', size=110).encode(
+            x=x, y='Modeled efficiency (%):Q', color=color)
+        efficiency_chart = alt.Chart(curves).mark_line(strokeWidth=3).encode(
+            x=x,
+            y=alt.Y('Modeled efficiency (%):Q', title='Modeled efficiency (%)',
+                    scale=alt.Scale(zero=False)),
+            color=color,
+            tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'),
+                     alt.Tooltip('Modeled efficiency (%):Q', format='.1f')],
+        )
+
+        # A distinct screening comparison: values come from the unchanged ranked candidates.
+        electrical = pd.DataFrame([
+            {'Pump model': candidate['pump'],
+             'Modeled electrical input (kW)': candidate['electrical_kw']}
+            for candidate in candidates
+        ])
+        electrical_chart = alt.Chart(electrical).mark_bar(size=28, cornerRadiusEnd=5).encode(
+            x=alt.X('Modeled electrical input (kW):Q',
+                    title='Modeled electrical input (kW)', scale=alt.Scale(zero=True)),
+            y=alt.Y('Pump model:N', title=None, sort='x'),
+            color=alt.condition(
+                alt.datum['Pump model'] == selected['pump'],
+                alt.value('#42ddb0'), alt.value('#78969a'),
+            ),
+            tooltip=['Pump model:N',
+                     alt.Tooltip('Modeled electrical input (kW):Q', format=',.1f')],
+        )
+
+        charts, decision = st.columns([2.8, 1.12], gap='large')
+        with charts:
+            upper_left, upper_right = st.columns(2, gap='small')
+            with upper_left:
+                with st.container(border=True):
+                    st.subheader('Pump and system head')
+                    st.caption('Prescribed-flow system sensitivity and modeled installed head')
+                    st.altair_chart(
+                        chart_style(pump_head + system_head + requested_point + bep_head),
+                        use_container_width=True,
+                    )
+            with upper_right:
+                with st.container(border=True):
+                    st.subheader('Pump shaft horsepower')
+                    st.caption('Fixed installed stages at the current frequency')
+                    st.altair_chart(
+                        chart_style(power + bep_power + requested_rule),
+                        use_container_width=True,
+                    )
+            lower_left, lower_right = st.columns(2, gap='small')
+            with lower_left:
+                with st.container(border=True):
+                    st.subheader('Modeled pump efficiency')
+                    st.caption('Synthetic efficiency curves with BEP markers')
+                    st.altair_chart(
+                        chart_style(efficiency_chart + bep_eff + requested_rule),
+                        use_container_width=True,
+                    )
+            with lower_right:
+                with st.container(border=True):
+                    st.subheader('Eligible family comparison')
+                    st.caption('Electrical input ranked at the requested operating target')
+                    st.altair_chart(chart_style(electrical_chart),
+                                    use_container_width=True)
+                    if len(candidates) == 1:
+                        st.caption('One synthetic family is eligible at these conditions.')
+        with decision:
+            with st.container(border=True):
+                st.caption('01 / SCREENING RESULT')
+                st.markdown(f"### {selected['pump']}")
+                st.caption('First eligible synthetic screening result; not a validated field design.')
+                st.metric('Estimated stage count', f"{selected['stages']:,}")
+                st.metric('Modeled efficiency', f"{selected['efficiency']:.1%}")
+                st.metric('Shaft horsepower', f"{selected['shaft_kw'] * 1.34102209:.1f} hp")
+                st.metric('Estimated electrical input', f"{selected['electrical_kw']:.1f} kW")
+                st.metric('Minimum motor shaft-power rating',
+                          f"{selected['minimum_motor_rating_kw']:.1f} kW")
+            with st.container(border=True):
+                st.markdown('#### Why this synthetic option?')
+                st.markdown('**01  /  Flow envelope**')
+                st.caption('Requested flow is within the modeled 70–120% BEP screening band.')
+                st.markdown('**02  /  Installed head**')
+                st.caption('Rounded stages provide modeled head at the requested rate.')
+                st.markdown('**03  /  Electrical input**')
+                st.caption('First in the unchanged eligible-family electrical-input ranking.')
+        st.caption(
+            f"Curves use each pump's fixed installed stage count and {frequency:.0f} Hz "
+            "frequency. Diamonds mark BEP; the dashed vertical line marks requested "
+            "flow. Only the prescribed 70–120% envelope is plotted. The pump/system "
+            "overlay is illustrative—not a validated well operating point or "
+            "nodal-analysis result."
+        )
 
         with st.expander('View all eligible synthetic pumps'):
             pump_table = pd.DataFrame(candidates)[['pump', 'stages', 'relative_flow', 'efficiency', 'installed_head_m', 'shaft_kw', 'electrical_kw', 'minimum_motor_rating_kw']].rename(columns={
@@ -136,13 +243,15 @@ with sizing:
     else:
         if load['head_m'] > 0:
             st.error('No fictional pump covers this rate at the selected frequency. Change the target or extend the catalog.')
-        st.subheader('System required head')
-        st.altair_chart((system_head + requested_point).properties(height=330), use_container_width=True)
+        with st.container(border=True):
+            st.subheader('System required head')
+            st.altair_chart(chart_style(system_head + requested_point, 330), use_container_width=True)
         st.caption('Prescribed-flow sensitivity from 80–120% of the target rate at fixed boundary pressures. This is not a validated operating point or nodal-analysis prediction.')
     st.caption('Stage rounding adds head. Actual operating flow requires a pump/system-curve intersection; motor rating is shaft power plus margin, not electrical input.')
 
 with analogs:
     st.subheader('Synthetic historical comparison')
+    st.caption('02 / HISTORY • FICTIONAL EXAMPLES, NOT FIELD RECORDS')
     history = synthetic_history()
     k = st.slider('Historical neighbors', 3, 20, 8)
     neighbors, votes, outside = compare(well, history, k)
@@ -160,6 +269,8 @@ with analogs:
     st.download_button('Download synthetic history CSV', history.to_csv(index=False), 'synthetic_history.csv', 'text/csv')
 
 with assumptions:
+    st.subheader('Model and operating assumptions')
+    st.caption('03 / METHOD • PHYSICAL BOUNDARIES AND LIMITATIONS')
     st.markdown('''Steady incompressible liquid with constant density and viscosity. Pump intake and wellhead pressures use the same gauge reference. Vertical depth sets elevation head; measured tubing length sets friction. Equal endpoint velocity heads; minor losses omitted.
 
 Darcy–Weisbach friction uses 64/Re for laminar flow and the Haaland approximation for turbulent flow, with interpolation between Reynolds numbers 2300 and 4000. Tubing roughness is fixed at 0.045 mm.

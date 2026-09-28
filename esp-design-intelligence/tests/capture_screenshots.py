@@ -51,9 +51,16 @@ def main() -> None:
                     expect(page.locator('[data-testid="stMetricValue"]').first).to_have_text(
                         re.compile(r"^\d[\d,]*(?:\.\d+)? m$"), timeout=30_000
                     )
-                    for heading in ("Pump and system head", "Pump shaft horsepower", "Modeled pump efficiency"):
+                    for heading in ("Pump and system head", "Pump shaft horsepower", "Modeled pump efficiency", "Eligible family comparison"):
                         expect(page.get_by_role("heading", name=heading)).to_be_visible()
-                    page.wait_for_function(RENDERED_CHARTS, arg=3, timeout=30_000)
+                    page.wait_for_function(RENDERED_CHARTS, arg=4, timeout=30_000)
+                    expect(page.get_by_text("01 / SCREENING RESULT")).to_be_visible()
+                    background = page.locator('[data-testid="stAppViewContainer"]').evaluate(
+                        "element => getComputedStyle(element).backgroundColor"
+                    )
+                    assert background == "rgb(8, 18, 20)", (
+                        f"{name} expected dark dashboard background, got {background}"
+                    )
                     check_no_horizontal_overflow(page, f"{name} sizing")
                     page.screenshot(path=OUTPUT_DIR / f"{name}.png", full_page=True)
 

@@ -90,7 +90,7 @@ Tests validate software behavior, not field performance.
 
 ## Startup check and screenshots
 
-Start Streamlit on port 8501, then run `python tests/capture_screenshots.py`. The check waits for the application heading and Design Snapshot, rejects horizontal overflow, and writes full-page 390 × 844 mobile and 1440 × 900 desktop screenshots to `artifacts/screenshots/`. Override defaults with `ESP_APP_URL` or `SCREENSHOT_DIR`.
+Start Streamlit on port 8501, then run `python tests/capture_screenshots.py`. The check waits for populated snapshot metrics and fully rendered Vega charts, verifies Sizing and History at 390 × 844 mobile and 1440 × 900 desktop widths, and rejects horizontal overflow on both tabs. It saves Sizing screenshots as `mobile.png` and `desktop.png`, plus History screenshots as `mobile-history.png` and `desktop-history.png`, in `artifacts/screenshots/`. Override defaults with `ESP_APP_URL` or `SCREENSHOT_DIR`.
 
 The **ESP quality checks** workflow runs for every pull request and manual dispatch. Open a run summary and download the `esp-browser-screenshots` artifact, retained for 14 days. Review the images; artifact creation alone is not visual approval.
 

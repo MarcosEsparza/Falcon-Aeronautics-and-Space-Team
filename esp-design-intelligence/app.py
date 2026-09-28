@@ -58,6 +58,17 @@ sizing, analogs, assumptions = st.tabs(['Sizing', 'History', 'Method'])
 with sizing:
     st.subheader('Synthetic pump selection')
     st.caption('Screened at 70–120% of speed-adjusted best efficiency point flow. Ranked by electrical power at the requested flow.')
+    system_rows = []
+    for multiplier in [.8, .9, 1., 1.1, 1.2]:
+        point_well = Well(**(asdict(well) | {'flow_bpd': flow * multiplier}))
+        system_rows.append({'Liquid rate (bbl/day)': point_well.flow_bpd,
+                            'System required head (m)': duty(point_well)['head_m']})
+    systems = pd.DataFrame(system_rows)
+    requested = pd.DataFrame([{'Liquid rate (bbl/day)': flow, 'Required head (m)': load['head_m']}])
+    x = alt.X('Liquid rate (bbl/day):Q', title='Liquid rate (bbl/day)', scale=alt.Scale(zero=False))
+    system_head = alt.Chart(systems).mark_line(point=True, color='#F3F7F5', strokeDash=[6,4]).encode(x=x, y=alt.Y('System required head (m):Q', title='Head (m)'),
+        tooltip=[alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('System required head (m):Q', format=',.1f')])
+    requested_point = alt.Chart(requested).mark_point(filled=True, size=130, color='#F3F7F5', stroke='#29A77D', strokeWidth=2).encode(x=x, y=alt.Y('Required head (m):Q'), tooltip=[alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Required head (m):Q', format=',.1f')])
     if candidates:
         selected = candidates[0]
         with st.container(border=True):
@@ -71,11 +82,9 @@ with sizing:
             st.metric('Minimum motor shaft-power rating', f"{selected['minimum_motor_rating_kw']:.1f} kW")
             st.caption('First eligible synthetic screening result; not a validated field design.')
 
-        compare_families = st.checkbox('Compare eligible synthetic pump families', value=False)
-        chart_candidates = candidates if compare_families else [selected]
         curve_rows = []
         bep_rows = []
-        for candidate in chart_candidates:
+        for candidate in candidates:
             bep = pump_point(well, candidate['pump'], frequency, candidate['stages'], flow)['bep_flow_bpd']
             low, high = 0.7 * bep, 1.2 * bep
             for index in range(31):
@@ -94,20 +103,9 @@ with sizing:
                              'Modeled efficiency (%)': bep_point['efficiency'] * 100})
         curves = pd.DataFrame(curve_rows)
         beps = pd.DataFrame(bep_rows)
-        system_rows = []
-        for multiplier in [.8, .9, 1., 1.1, 1.2]:
-            point_well = Well(**(asdict(well) | {'flow_bpd': flow * multiplier}))
-            system_rows.append({'Liquid rate (bbl/day)': point_well.flow_bpd,
-                                'System required head (m)': duty(point_well)['head_m']})
-        systems = pd.DataFrame(system_rows)
-        requested = pd.DataFrame([{'Liquid rate (bbl/day)': flow, 'Required head (m)': load['head_m']}])
         color = alt.Color('Pump model:N', legend=alt.Legend(title='Synthetic family'))
-        x = alt.X('Liquid rate (bbl/day):Q', title='Liquid rate (bbl/day)', scale=alt.Scale(zero=False))
         pump_head = alt.Chart(curves).mark_line(strokeWidth=3).encode(x=x, y=alt.Y('Pump head (m):Q', title='Head (m)', scale=alt.Scale(zero=True)), color=color,
             tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Pump head (m):Q', format=',.1f')])
-        system_head = alt.Chart(systems).mark_line(point=True, color='#F3F7F5', strokeDash=[6,4]).encode(x=x, y=alt.Y('System required head (m):Q', title='Head (m)'),
-            tooltip=[alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('System required head (m):Q', format=',.1f')])
-        requested_point = alt.Chart(requested).mark_point(filled=True, size=130, color='#F3F7F5', stroke='#29A77D', strokeWidth=2).encode(x=x, y=alt.Y('Required head (m):Q'), tooltip=[alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Required head (m):Q', format=',.1f')])
         bep_head = alt.Chart(beps).mark_point(shape='diamond', size=110).encode(x=x, y='Pump head (m):Q', color=color, tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f')])
         st.subheader('Pump and system head')
         st.altair_chart((pump_head + system_head + requested_point + bep_head).properties(height=330), use_container_width=True)
@@ -135,8 +133,12 @@ with sizing:
                 'Modeled efficiency': st.column_config.NumberColumn(format='percent'), 'Installed head (m)': st.column_config.NumberColumn(format='%.0f'),
                 'Shaft power (kW)': st.column_config.NumberColumn(format='%.1f'), 'Modeled electrical input (kW)': st.column_config.NumberColumn(format='%.1f'),
                 'Minimum motor shaft-power rating (kW)': st.column_config.NumberColumn(format='%.1f')})
-    elif load['head_m'] > 0:
-        st.error('No fictional pump covers this rate at the selected frequency. Change the target or extend the catalog.')
+    else:
+        if load['head_m'] > 0:
+            st.error('No fictional pump covers this rate at the selected frequency. Change the target or extend the catalog.')
+        st.subheader('System required head')
+        st.altair_chart((system_head + requested_point).properties(height=330), use_container_width=True)
+        st.caption('Prescribed-flow sensitivity from 80–120% of the target rate at fixed boundary pressures. This is not a validated operating point or nodal-analysis prediction.')
     st.caption('Stage rounding adds head. Actual operating flow requires a pump/system-curve intersection; motor rating is shaft power plus margin, not electrical input.')
 
 with analogs:

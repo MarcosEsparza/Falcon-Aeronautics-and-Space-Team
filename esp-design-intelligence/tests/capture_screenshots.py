@@ -64,6 +64,15 @@ def main() -> None:
                     check_no_horizontal_overflow(page, f"{name} sizing")
                     page.screenshot(path=OUTPUT_DIR / f"{name}.png", full_page=True)
 
+                    # Streamlit scrolls inside its main pane, so full_page=True alone
+                    # does not reveal charts beneath the initial viewport.
+                    page.get_by_role("heading", name="Pump and system head").evaluate(
+                        "element => element.scrollIntoView({block: 'start'})"
+                    )
+                    page.wait_for_function(RENDERED_CHARTS, arg=4, timeout=30_000)
+                    check_no_horizontal_overflow(page, f"{name} chart grid")
+                    page.screenshot(path=OUTPUT_DIR / f"{name}-charts.png")
+
                     page.get_by_role("tab", name="History").click()
                     expect(page.get_by_role("heading", name="Synthetic historical comparison")).to_be_visible()
                     expect(page.get_by_text("Nearest-neighbor suggestion at historical 60 Hz:", exact=False)).to_be_visible()

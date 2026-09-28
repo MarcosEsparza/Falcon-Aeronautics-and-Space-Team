@@ -148,3 +148,14 @@ not a solved operating point. The engineering and history modules are unchanged.
 The stylesheet is a checked-in local `dashboard.css`. Desktop and mobile browser
 checks require all four sizing charts to render, verify the new visual theme,
 and confirm no horizontal overflow. Review screenshots before approving the PR.
+
+### Layout verification
+
+The screening result is a compact, data-driven band above a full-width 2×2
+chart grid. This deliberately gives engineering axes more room than the first
+draft's narrow side-by-side recommendation panel. The rationale appears below
+the charts rather than obscuring them. Altair family legends are bottom-aligned.
+
+Because Streamlit scrolls within its main pane, screenshot capture saves both
+the initial viewport (`desktop.png`, `mobile.png`) and a second scrolled view
+(`desktop-charts.png`, `mobile-charts.png`) to allow real visual review.

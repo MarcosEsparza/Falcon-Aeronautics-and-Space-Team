@@ -120,7 +120,7 @@ with sizing:
                 domain=[candidate['pump'] for candidate in candidates],
                 range=['#42ddb0', '#89a9ae', '#657f86'][:len(candidates)],
             ),
-            legend=alt.Legend(title='Synthetic family'),
+            legend=alt.Legend(title='Synthetic family', orient='bottom', direction='horizontal'),
         )
         pump_head = alt.Chart(curves).mark_line(strokeWidth=3).encode(x=x, y=alt.Y('Pump head (m):Q', title='Head (m)', scale=alt.Scale(zero=True)), color=color,
             tooltip=['Pump model:N', alt.Tooltip('Liquid rate (bbl/day):Q', format=',.0f'), alt.Tooltip('Pump head (m):Q', format=',.1f')])
@@ -166,60 +166,70 @@ with sizing:
                      alt.Tooltip('Modeled electrical input (kW):Q', format=',.1f')],
         )
 
-        charts, decision = st.columns([2.8, 1.12], gap='large')
-        with charts:
-            upper_left, upper_right = st.columns(2, gap='small')
-            with upper_left:
-                with st.container(border=True):
-                    st.subheader('Pump and system head')
-                    st.caption('Prescribed-flow system sensitivity and modeled installed head')
-                    st.altair_chart(
-                        chart_style(pump_head + system_head + requested_point + bep_head),
-                        use_container_width=True,
-                    )
-            with upper_right:
-                with st.container(border=True):
-                    st.subheader('Pump shaft horsepower')
-                    st.caption('Fixed installed stages at the current frequency')
-                    st.altair_chart(
-                        chart_style(power + bep_power + requested_rule),
-                        use_container_width=True,
-                    )
-            lower_left, lower_right = st.columns(2, gap='small')
-            with lower_left:
-                with st.container(border=True):
-                    st.subheader('Modeled pump efficiency')
-                    st.caption('Synthetic efficiency curves with BEP markers')
-                    st.altair_chart(
-                        chart_style(efficiency_chart + bep_eff + requested_rule),
-                        use_container_width=True,
-                    )
-            with lower_right:
-                with st.container(border=True):
-                    st.subheader('Eligible family comparison')
-                    st.caption('Electrical input ranked at the requested operating target')
-                    st.altair_chart(chart_style(electrical_chart),
-                                    use_container_width=True)
-                    if len(candidates) == 1:
-                        st.caption('One synthetic family is eligible at these conditions.')
-        with decision:
-            with st.container(border=True):
+        # The compact result band leaves enough width for engineering chart axes.
+        with st.container(border=True):
+            identity, outputs = st.columns([1.05, 3.5], gap='large')
+            with identity:
                 st.caption('01 / SCREENING RESULT')
                 st.markdown(f"### {selected['pump']}")
                 st.caption('First eligible synthetic screening result; not a validated field design.')
-                st.metric('Estimated stage count', f"{selected['stages']:,}")
-                st.metric('Modeled efficiency', f"{selected['efficiency']:.1%}")
-                st.metric('Shaft horsepower', f"{selected['shaft_kw'] * 1.34102209:.1f} hp")
-                st.metric('Estimated electrical input', f"{selected['electrical_kw']:.1f} kW")
-                st.metric('Minimum motor shaft-power rating',
-                          f"{selected['minimum_motor_rating_kw']:.1f} kW")
+            with outputs:
+                values = st.columns(5, gap='small')
+                values[0].metric('Estimated stage count', f"{selected['stages']:,}")
+                values[1].metric('Modeled efficiency', f"{selected['efficiency']:.1%}")
+                values[2].metric('Shaft horsepower',
+                                 f"{selected['shaft_kw'] * 1.34102209:.1f} hp")
+                values[3].metric('Estimated electrical input',
+                                 f"{selected['electrical_kw']:.1f} kW")
+                values[4].metric('Minimum motor shaft-power rating',
+                                 f"{selected['minimum_motor_rating_kw']:.1f} kW")
+
+        upper_left, upper_right = st.columns(2, gap='medium')
+        with upper_left:
             with st.container(border=True):
-                st.markdown('#### Why this synthetic option?')
-                st.markdown('**01  /  Flow envelope**')
+                st.subheader('Pump and system head')
+                st.caption('Prescribed-flow system sensitivity and modeled installed head')
+                st.altair_chart(
+                    chart_style(pump_head + system_head + requested_point + bep_head),
+                    use_container_width=True,
+                )
+        with upper_right:
+            with st.container(border=True):
+                st.subheader('Pump shaft horsepower')
+                st.caption('Fixed installed stages at the current frequency')
+                st.altair_chart(
+                    chart_style(power + bep_power + requested_rule),
+                    use_container_width=True,
+                )
+        lower_left, lower_right = st.columns(2, gap='medium')
+        with lower_left:
+            with st.container(border=True):
+                st.subheader('Modeled pump efficiency')
+                st.caption('Synthetic efficiency curves with BEP markers')
+                st.altair_chart(
+                    chart_style(efficiency_chart + bep_eff + requested_rule),
+                    use_container_width=True,
+                )
+        with lower_right:
+            with st.container(border=True):
+                st.subheader('Eligible family comparison')
+                st.caption('Electrical input ranked at the requested operating target')
+                st.altair_chart(chart_style(electrical_chart),
+                                use_container_width=True)
+                if len(candidates) == 1:
+                    st.caption('One synthetic family is eligible at these conditions.')
+
+        with st.container(border=True):
+            st.markdown('#### Why this synthetic option?')
+            reason1, reason2, reason3 = st.columns(3, gap='medium')
+            with reason1:
+                st.markdown('**01 / Flow envelope**')
                 st.caption('Requested flow is within the modeled 70–120% BEP screening band.')
-                st.markdown('**02  /  Installed head**')
+            with reason2:
+                st.markdown('**02 / Installed head**')
                 st.caption('Rounded stages provide modeled head at the requested rate.')
-                st.markdown('**03  /  Electrical input**')
+            with reason3:
+                st.markdown('**03 / Electrical input**')
                 st.caption('First in the unchanged eligible-family electrical-input ranking.')
         st.caption(
             f"Curves use each pump's fixed installed stage count and {frequency:.0f} Hz "

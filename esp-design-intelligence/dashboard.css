@@ -16,7 +16,7 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 [data-testid="stAppViewContainer"] .block-container {
     max-width: 1880px;
-    padding: 1.65rem 2rem 3rem;
+    padding: 2.9rem 2rem 3rem;
 }
 .workspace-eyebrow {
     margin: 0 0 .55rem;
@@ -107,7 +107,7 @@ h2, h3 { font-weight: 660 !important; }
 a, a:visited { color: #79e4c2; }
 @media (max-width: 800px) {
     [data-testid="stAppViewContainer"] .block-container {
-        padding: 1rem .8rem 2rem;
+        padding: 2.7rem .8rem 2rem;
     }
     [data-testid="stAppViewContainer"] div[data-testid="stMetric"] {
         padding: .8rem;

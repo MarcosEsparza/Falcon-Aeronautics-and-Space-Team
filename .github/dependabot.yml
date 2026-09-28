@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
+    # Our supported CI baseline is Python 3.11; NumPy 2.5+ requires 3.12+.
+    # Revisit this exclusion only as part of a tested Python-runtime upgrade.
+    ignore:
+      - dependency-name: "numpy"
+        versions: [">=2.5.0"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

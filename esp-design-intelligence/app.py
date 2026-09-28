@@ -166,23 +166,26 @@ with sizing:
                      alt.Tooltip('Modeled electrical input (kW):Q', format=',.1f')],
         )
 
-        # The compact result band leaves enough width for engineering chart axes.
+        # Keep a full-width output row: no clipped engineering values on desktop.
         with st.container(border=True):
-            identity, outputs = st.columns([1.05, 3.5], gap='large')
-            with identity:
+            introduction, context = st.columns([1.1, 3.6], gap='medium')
+            with introduction:
                 st.caption('01 / SCREENING RESULT')
                 st.markdown(f"### {selected['pump']}")
+            with context:
+                st.markdown('**Prescribed-flow synthetic screening**')
                 st.caption('First eligible synthetic screening result; not a validated field design.')
-            with outputs:
-                values = st.columns(5, gap='small')
-                values[0].metric('Estimated stage count', f"{selected['stages']:,}")
-                values[1].metric('Modeled efficiency', f"{selected['efficiency']:.1%}")
-                values[2].metric('Shaft horsepower',
-                                 f"{selected['shaft_kw'] * 1.34102209:.1f} hp")
-                values[3].metric('Estimated electrical input',
-                                 f"{selected['electrical_kw']:.1f} kW")
-                values[4].metric('Minimum motor shaft-power rating',
-                                 f"{selected['minimum_motor_rating_kw']:.1f} kW")
+            values = st.columns(5, gap='small')
+            values[0].metric('Estimated stages', f"{selected['stages']:,}")
+            values[1].metric('Modeled efficiency', f"{selected['efficiency']:.1%}")
+            values[2].metric('Shaft horsepower',
+                             f"{selected['shaft_kw'] * 1.34102209:.1f} hp")
+            values[3].metric('Electrical input',
+                             f"{selected['electrical_kw']:.1f} kW")
+            values[4].metric('Motor shaft rating',
+                             f"{selected['minimum_motor_rating_kw']:.1f} kW")
+            st.caption('Motor shaft rating is the minimum modeled shaft-power rating with '
+                       'the selected margin; it is not electrical input.')
 
         upper_left, upper_right = st.columns(2, gap='medium')
         with upper_left:

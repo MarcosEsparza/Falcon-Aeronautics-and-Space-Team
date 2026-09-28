@@ -159,3 +159,12 @@ the charts rather than obscuring them. Altair family legends are bottom-aligned.
 Because Streamlit scrolls within its main pane, screenshot capture saves both
 the initial viewport (`desktop.png`, `mobile.png`) and a second scrolled view
 (`desktop-charts.png`, `mobile-charts.png`) to allow real visual review.
+
+### Engineering metric readability
+
+The five screening outputs use short, fully explained display labels to prevent
+truncated values on ordinary laptop screens. They retain the same calculations:
+rounded estimated stages, modeled pump efficiency, shaft horsepower, modeled
+electrical input, and minimum motor shaft-power rating with margin. The last
+two represent different quantities. The browser test rejects clipped numeric
+metric values at both tested viewport sizes.

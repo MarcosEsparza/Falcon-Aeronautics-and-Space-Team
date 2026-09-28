@@ -45,11 +45,11 @@ def test_selection_panel_matches_first_eligible_pump():
     app = run_app()
     expected = size_pumps(Well())[0]
     metrics = {metric.label: metric.value for metric in app.metric}
-    assert metrics['Estimated stage count'] == f"{expected['stages']:,}"
+    assert metrics['Estimated stages'] == f"{expected['stages']:,}"
     assert metrics['Modeled efficiency'] == f"{expected['efficiency']:.1%}"
     assert metrics['Shaft horsepower'] == f"{expected['shaft_kw'] * 1.34102209:.1f} hp"
-    assert metrics['Estimated electrical input'] == f"{expected['electrical_kw']:.1f} kW"
-    assert metrics['Minimum motor shaft-power rating'] == f"{expected['minimum_motor_rating_kw']:.1f} kW"
+    assert metrics['Electrical input'] == f"{expected['electrical_kw']:.1f} kW"
+    assert metrics['Motor shaft rating'] == f"{expected['minimum_motor_rating_kw']:.1f} kW"
     assert any(expected['pump'] in item.value for item in app.markdown)
     assert any('not a validated field design' in caption.value for caption in app.caption)
 
@@ -107,7 +107,7 @@ def test_invalid_geometry_and_uncovered_rate():
     next(x for x in app.sidebar.number_input if x.label == 'Tubing measured length (ft)').set_value(6500.)
     next(x for x in app.sidebar.number_input if x.label == 'Liquid rate (bbl/day)').set_value(12000.).run()
     assert any('No fictional pump' in x.value for x in app.error)
-    assert 'Estimated stage count' not in {metric.label for metric in app.metric}
+    assert 'Estimated stages' not in {metric.label for metric in app.metric}
     assert 'View all eligible synthetic pumps' not in [item.label for item in app.expander]
     assert 'System required head' in {heading.value for heading in app.subheader}
     assert 'Pump and system head' not in {heading.value for heading in app.subheader}

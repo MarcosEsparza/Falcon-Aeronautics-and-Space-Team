@@ -71,6 +71,13 @@ with sizing:
             st.metric('Minimum motor shaft-power rating', f"{selected['minimum_motor_rating_kw']:.1f} kW")
             st.caption('First eligible synthetic screening result; not a validated field design.')
 
+        st.subheader('Why this pump?')
+        st.markdown(
+            f"- Operates at **{selected['relative_flow']:.2f} × BEP flow**, within the prescribed 70–120% flow envelope.\n"
+            "- The installed design **meets the required head after whole-stage rounding.**\n"
+            "- Has the **lowest modeled electrical input among eligible candidates** at the requested duty."
+        )
+
         compare_families = st.checkbox('Compare eligible synthetic pump families', value=False)
         chart_candidates = candidates if compare_families else [selected]
         curve_rows = []
@@ -148,6 +155,16 @@ with analogs:
     st.caption('Vote share describes neighboring synthetic labels only; it is not confidence, reliability, or probability of success. Current-frequency engineering eligibility takes precedence.')
     if outside:
         st.warning('Coverage warning — outside synthetic feature coverage: ' + ', '.join(outside))
+    st.subheader('Neighbor label mix')
+    label_mix = neighbors['pump'].value_counts().rename_axis('Pump model').reset_index(name='Neighbor count')
+    st.bar_chart(label_mix, x='Pump model', y='Neighbor count')
+    st.caption('Neighbor label mix is descriptive only; vote share is not confidence or success probability.')
+    st.subheader('Neighbor spread')
+    spread = st.columns(3)
+    spread[0].metric('Closest distance', f"{neighbors['distance'].min():.2f}")
+    spread[1].metric('Median distance', f"{neighbors['distance'].median():.2f}")
+    spread[2].metric('Farthest distance', f"{neighbors['distance'].max():.2f}")
+    st.caption('Distances are standardized feature-space separation; lower is more similar, not more likely to succeed.')
     shown = neighbors[['well_id', 'pump', 'distance', 'flow_bpd', 'depth_ft', 'sg', 'viscosity_cp', 'intake_psi', 'tubing_id_in', 'head_m']].copy()
     shown['proximity'] = 1 / (1 + shown['distance'])
     proximity = shown[['well_id', 'pump', 'proximity']].rename(columns={'well_id': 'Synthetic well', 'pump': 'Pump model', 'proximity': 'Descriptive proximity'})
@@ -158,13 +175,28 @@ with analogs:
     st.download_button('Download synthetic history CSV', history.to_csv(index=False), 'synthetic_history.csv', 'text/csv')
 
 with assumptions:
-    st.markdown('''Steady incompressible liquid with constant density and viscosity. Pump intake and wellhead pressures use the same gauge reference. Vertical depth sets elevation head; measured tubing length sets friction. Equal endpoint velocity heads; minor losses omitted.
+    st.subheader('Design basis')
+    st.markdown('''Single-phase, steady-state screening with incompressible liquid at constant density and viscosity. Pump intake and wellhead pressures use the same gauge reference. Vertical depth sets elevation head; measured tubing length sets friction. Equal endpoint velocity heads; minor losses omitted.
 
 Darcy–Weisbach friction uses 64/Re for laminar flow and the Haaland approximation for turbulent flow, with interpolation between Reynolds numbers 2300 and 4000. Tubing roughness is fixed at 0.045 mm.
 
 Pump head = elevation rise + pressure-head difference + friction head. Hydraulic power = density × gravity × flow × head. Fictional pump curves use affinity scaling at constant geometry.
 
-Before field design: verify inflow/drawdown, multiphase outflow, free gas and gas separation, viscosity corrections, net positive suction head, motor cooling, temperature, cable/drive losses, casing clearance, thrust, shaft/stage limits, materials and sand handling. These are not evaluated here.''')
+''')
+    st.subheader('Data provenance')
+    st.markdown('''- **Synthetic pump catalog:** fictional families and modeled curves, not manufacturer specifications.
+- **Synthetic historical dataset:** generated engineering examples, not observed field outcomes.
+- **Calculated:** duty head, friction, hydraulic power, staged pump head and modeled power.
+- **Screened, not validated:** results do not establish field performance or a well operating point.''')
+    st.subheader('What to verify next')
+    st.markdown('''Before field design, verify:
+
+- inflow and drawdown; multiphase outflow; free gas and gas separation
+- viscosity corrections, net positive suction head and intake conditions
+- motor cooling, temperature, cable and drive losses
+- casing clearance, thrust, shaft and stage limits, materials and sand handling
+
+These checks are outside this screening model, and passing software tests does not validate field performance.''')
     st.json(load)
 
 st.download_button('Download design JSON', json.dumps({'synthetic_demo': True, 'well': asdict(well), 'frequency_hz': frequency, 'motor_efficiency': motor_eff, 'motor_margin': margin, 'duty': load, 'candidates': candidates}, indent=2), 'esp_screening_design.json', 'application/json')

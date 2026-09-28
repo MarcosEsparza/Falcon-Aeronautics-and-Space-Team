@@ -103,3 +103,37 @@ def test_history_language_does_not_call_vote_share_confidence():
 def test_root_streamlit_theme_uses_supported_dark_palette():
     config = tomllib.loads(THEME.read_text())
     assert config == {'theme': {'base': 'dark', 'primaryColor': '#29A77D', 'backgroundColor': '#101A1C', 'secondaryBackgroundColor': '#1A292B', 'textColor': '#F3F7F5', 'font': 'sans serif'}}
+
+
+def test_selection_explains_why_candidate_was_chosen():
+    app = run_app()
+    expected = size_pumps(Well())[0]
+    assert any(item.value == 'Why this pump?' for item in app.subheader)
+    explanation = '\n'.join(item.value for item in app.markdown)
+    assert 'within the prescribed 70–120% flow envelope' in explanation
+    assert 'meets the required head after whole-stage rounding' in explanation
+    assert 'lowest modeled electrical input among eligible candidates' in explanation
+    assert f"{expected['relative_flow']:.2f} × BEP flow" in explanation
+
+
+def test_method_consolidates_basis_provenance_and_next_checks():
+    app = run_app()
+    headings = {item.value for item in app.subheader}
+    assert {'Design basis', 'Data provenance', 'What to verify next'} <= headings
+    text = '\n'.join(item.value for item in app.markdown)
+    assert 'Single-phase, steady-state screening' in text
+    assert 'Synthetic pump catalog' in text
+    assert 'inflow and drawdown' in text
+    assert 'field performance' in text
+
+
+def test_history_reports_label_mix_and_neighbor_spread_without_confidence_language():
+    app = run_app()
+    headings = {item.value for item in app.subheader}
+    assert 'Neighbor label mix' in headings
+    assert 'Neighbor spread' in headings
+    metrics = {metric.label: metric.value for metric in app.metric}
+    assert 'Closest distance' in metrics
+    assert 'Median distance' in metrics
+    assert 'Farthest distance' in metrics
+    assert any('descriptive only' in caption.value and 'not confidence' in caption.value for caption in app.caption)

@@ -1,2 +1,6 @@
 -r requirements.txt
 playwright>=1.55,<2
+ruff==0.16.9
+pip-audit==2.10.1
+# Patches PYSEC-2026-3447 in preinstalled CI packaging tooling.
+setuptools>=83.0.0

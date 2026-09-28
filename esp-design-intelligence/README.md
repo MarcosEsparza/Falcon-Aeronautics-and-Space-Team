@@ -95,3 +95,9 @@ Start Streamlit on port 8501, then run `python tests/capture_screenshots.py`. Th
 The **ESP quality checks** workflow runs for every pull request and manual dispatch. Open a run summary and download the `esp-browser-screenshots` artifact, retained for 14 days. Review the images; artifact creation alone is not visual approval.
 
 For a framework-neutral new-repository checklist, see [`../DEVELOPMENT_TEMPLATE.md`](../DEVELOPMENT_TEMPLATE.md).
+
+## Additional automated checks
+
+Pull requests also run Ruff linting and `pip-audit` against the installed Python environment. A separate PR job scans new commits for credential-shaped data using TruffleHog without attempting credential verification; potential matches and scanner errors fail the check without printing findings into public workflow logs. These tools do **not** validate the physical model or detect confidential engineering workbooks.
+
+Dependabot is configured to propose weekly Python and GitHub Actions updates; its proposals require the same checks and manual review as other changes. Run the additional local checks from `esp-design-intelligence` with `ruff check .` and `python -m pip_audit --local` after installing `requirements-dev.txt`. Do not commit real well records, confidential spreadsheets, API keys, or proprietary equipment data.

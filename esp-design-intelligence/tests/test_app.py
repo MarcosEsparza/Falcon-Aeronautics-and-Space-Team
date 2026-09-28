@@ -91,7 +91,16 @@ def test_invalid_geometry_and_uncovered_rate():
     assert any('No fictional pump' in x.value for x in app.error)
     assert 'Estimated stage count' not in {metric.label for metric in app.metric}
     assert 'View all eligible synthetic pumps' not in [item.label for item in app.expander]
+    assert 'System required head' in {heading.value for heading in app.subheader}
+    assert 'Pump and system head' not in {heading.value for heading in app.subheader}
+    assert any('Prescribed-flow sensitivity' in caption.value for caption in app.caption)
+    assert len(app.get('vega_lite_chart')) >= 1
     assert not app.exception
+
+
+def test_selection_does_not_show_no_op_compare_checkbox():
+    app = run_app()
+    assert all(item.label != 'Compare eligible synthetic pump families' for item in app.checkbox)
 
 
 def test_history_language_does_not_call_vote_share_confidence():

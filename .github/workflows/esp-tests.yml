@@ -56,7 +56,12 @@ jobs:
           retention-days: 14
       - name: Show Streamlit log on failure
         if: failure()
-        run: cat /tmp/esp-streamlit.log
+        run: |
+          if [ -f /tmp/esp-streamlit.log ]; then
+            cat /tmp/esp-streamlit.log
+          else
+            echo "Streamlit was not started before this failure."
+          fi
 
   credential-scan:
     if: github.event_name == 'pull_request'

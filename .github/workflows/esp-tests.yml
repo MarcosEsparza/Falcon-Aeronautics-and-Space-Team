@@ -48,7 +48,7 @@ jobs:
         run: python tests/capture_screenshots.py
       - name: Upload browser screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: esp-browser-screenshots
           path: esp-design-intelligence/artifacts/screenshots/

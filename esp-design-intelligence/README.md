@@ -101,3 +101,28 @@ For a framework-neutral new-repository checklist, see [`../DEVELOPMENT_TEMPLATE.
 Pull requests also run Ruff linting and `pip-audit` against the installed Python environment. A separate PR job scans new commits for credential-shaped data using TruffleHog without attempting credential verification; potential matches and scanner errors fail the check without printing findings into public workflow logs. These tools do **not** validate the physical model or detect confidential engineering workbooks.
 
 Dependabot is configured to propose weekly Python and GitHub Actions updates; its proposals require the same checks and manual review as other changes. Run the additional local checks from `esp-design-intelligence` with `ruff check .` and `python -m pip_audit --local` after installing `requirements-dev.txt`. Do not commit real well records, confidential spreadsheets, API keys, or proprietary equipment data.
+
+## Prevent accidental confidential-data commits
+
+This **public** repository contains synthetic ESP examples only. Never put real
+well records, company workbooks, production exports, or secrets in this repository.
+The root `.gitignore` excludes common data formats for untracked files. A small
+local Git hook and pull-request check reject newly added or modified spreadsheet,
+database, data-export, and archive formats by extension.
+
+**On each local clone**, activate the preventive hook once from the repository root:
+
+```bash
+git config core.hooksPath .githooks
+python esp-design-intelligence/tools/check_repository_data.py --staged
+```
+
+The hook checks *staged* files before `git commit`; it does not install itself on
+your computer when this PR is merged. If Python is unavailable, commits fail
+until the hook can run. CI also checks proposed PR changes, but CI runs **after**
+data has already reached GitHub and is not prevention. Neither extension
+checks, `.gitignore`, nor TruffleHog can recognize all confidential content.
+Keep real data in company-approved locations and never in this repository.
+The pre-existing project ZIP is preserved; do not modify or replace it with
+data. If confidential data is ever pushed, follow the data owner's incident
+process; deleting a file or commit may not erase copies or history.

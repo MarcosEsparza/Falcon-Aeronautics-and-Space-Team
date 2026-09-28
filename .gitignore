@@ -1,0 +1,26 @@
+# Defense in depth. Git ignore does not protect files already tracked.
+.env
+.env.*
+!.env.example
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.sqlite
+*.sqlite3
+*.db
+*.duckdb
+*.mdb
+*.accdb
+*.pkl
+*.pickle
+*.jsonl
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz

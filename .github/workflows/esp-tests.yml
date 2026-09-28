@@ -36,7 +36,7 @@ jobs:
       - name: Install Chromium
         run: python -m playwright install --with-deps chromium
       - name: Compile Python sources
-        run: python -m compileall -q app.py engineering.py history.py tests
+        run: python -m compileall -q app.py engineering.py history.py tests tools
       - name: Run tests
         run: python -m pytest -q
       - name: Start Streamlit
@@ -72,6 +72,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Reject newly committed data-like files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python esp-design-intelligence/tools/check_repository_data.py --compare "$BASE_SHA" "$HEAD_SHA"
       - name: Scan PR commits without printing candidate credentials
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

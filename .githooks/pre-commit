@@ -1,0 +1,8 @@
+#!/bin/sh
+# One-time local activation: git config core.hooksPath .githooks
+# Prevent common accidental data-file commits before any GitHub upload.
+if ! command -v python >/dev/null 2>&1; then
+  echo "Python is required for the confidential-data pre-commit guard." >&2
+  exit 1
+fi
+python esp-design-intelligence/tools/check_repository_data.py --staged

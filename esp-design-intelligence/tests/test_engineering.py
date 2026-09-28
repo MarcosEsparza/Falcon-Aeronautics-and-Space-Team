@@ -1,6 +1,6 @@
 import math
 import pytest
-from engineering import Well, duty, size_pumps, BPD_TO_M3S, G
+from engineering import Well, duty, size_pumps, pump_point, PUMPS, BPD_TO_M3S, G
 from history import synthetic_history, compare
 
 
@@ -51,6 +51,33 @@ def test_affinity_scaling_at_equal_relative_flow():
     b = size_pumps(Well(flow_bpd=2500), 50)[0]
     assert a['pump'] == b['pump']
     assert b['installed_head_m']/b['stages'] == pytest.approx(a['installed_head_m']/a['stages'] * (50/60)**2)
+
+
+def test_pump_point_matches_sizing_and_uses_fixed_stage_count():
+    well = Well()
+    sized = size_pumps(well)[0]
+    point = pump_point(well, sized['pump'], 60, sized['stages'], well.flow_bpd)
+    assert point['stages'] == sized['stages']
+    assert point['installed_head_m'] == pytest.approx(sized['installed_head_m'])
+    assert point['efficiency'] == pytest.approx(sized['efficiency'])
+    assert point['shaft_kw'] == pytest.approx(sized['shaft_kw'])
+    assert point['shaft_hp'] == pytest.approx(point['shaft_kw'] * 1.34102209)
+
+
+def test_pump_point_bep_operating_limits_and_frequency_scaling():
+    well = Well()
+    bep, base_head, peak_eff = PUMPS['SYN-3000']
+    low = pump_point(well, 'SYN-3000', 60, 100, bep * .7)
+    at_bep = pump_point(well, 'SYN-3000', 60, 100, bep)
+    high = pump_point(well, 'SYN-3000', 60, 100, bep * 1.2)
+    scaled = pump_point(well, 'SYN-3000', 50, 100, bep * 50 / 60)
+    assert low['supported'] and high['supported']
+    assert at_bep['relative_flow'] == pytest.approx(1)
+    assert at_bep['efficiency'] == pytest.approx(peak_eff)
+    assert at_bep['stage_head_m'] == pytest.approx(base_head)
+    assert scaled['stage_head_m'] == pytest.approx(base_head * (50 / 60) ** 2)
+    assert not pump_point(well, 'SYN-3000', 60, 100, bep * .699)['supported']
+    assert not pump_point(well, 'SYN-3000', 60, 100, bep * 1.201)['supported']
 
 
 def test_history_reproducible_and_self_neighbor():

@@ -6,6 +6,7 @@ G = 9.80665
 BPD_TO_M3S = 0.158987294928 / 86400
 PSI_TO_PA = 6894.757293168
 FT_TO_M = 0.3048
+KW_TO_HP = 1.34102209
 
 @dataclass(frozen=True)
 class Well:
@@ -61,9 +62,42 @@ PUMPS = {'SYN-1500': (1500, 8.0, 0.65), 'SYN-3000': (3000, 7.5, 0.70),
          'SYN-6000': (6000, 7.0, 0.73)}
 
 
-def size_pumps(well, frequency_hz=60.0, motor_efficiency=0.9, margin=0.15):
+def _validate_frequency(frequency_hz):
     if not math.isfinite(frequency_hz) or not 40 <= frequency_hz <= 70:
         raise ValueError('Frequency must be 40–70 Hz')
+
+
+def pump_point(well, pump, frequency_hz, stages, flow_bpd):
+    """Evaluate one fictional pump at fixed installed stages and frequency."""
+    well.validate()
+    _validate_frequency(frequency_hz)
+    if pump not in PUMPS:
+        raise ValueError(f'Unknown synthetic pump: {pump}')
+    if not isinstance(stages, int) or stages <= 0:
+        raise ValueError('Stages must be a positive integer')
+    if not math.isfinite(flow_bpd) or flow_bpd <= 0:
+        raise ValueError('Flow must be finite and positive')
+
+    bep, base_head, peak_eff = PUMPS[pump]
+    speed = frequency_hz / 60
+    bep_flow = bep * speed
+    ratio = flow_bpd / bep_flow
+    stage_head = base_head * (1.25 - 0.25 * ratio**2) * speed**2
+    efficiency = peak_eff - 0.35 * (ratio - 1)**2
+    installed_head = stages * stage_head
+    shaft_kw = (well.sg * 1000 * G * flow_bpd * BPD_TO_M3S
+                * installed_head / efficiency / 1000)
+    return dict(pump=pump, flow_bpd=flow_bpd, frequency_hz=frequency_hz,
+                stages=stages, bep_flow_bpd=bep_flow,
+                minimum_flow_bpd=0.7 * bep_flow, maximum_flow_bpd=1.2 * bep_flow,
+                relative_flow=ratio, supported=0.7 <= ratio <= 1.2,
+                stage_head_m=stage_head, installed_head_m=installed_head,
+                efficiency=efficiency, shaft_kw=shaft_kw,
+                shaft_hp=shaft_kw * KW_TO_HP)
+
+
+def size_pumps(well, frequency_hz=60.0, motor_efficiency=0.9, margin=0.15):
+    _validate_frequency(frequency_hz)
     if not math.isfinite(motor_efficiency) or not 0 < motor_efficiency <= 1:
         raise ValueError('Motor efficiency must be in (0, 1]')
     if not math.isfinite(margin) or not 0 <= margin <= 1:
@@ -72,18 +106,17 @@ def size_pumps(well, frequency_hz=60.0, motor_efficiency=0.9, margin=0.15):
     if load['head_m'] == 0:
         return []
     rows = []
-    speed = frequency_hz / 60
-    for name, (bep, base_head, peak_eff) in PUMPS.items():
-        ratio = well.flow_bpd / (bep * speed)
-        if not 0.7 <= ratio <= 1.2:
+    for name in PUMPS:
+        single_stage = pump_point(well, name, frequency_hz, 1, well.flow_bpd)
+        if not single_stage['supported']:
             continue
-        stage_head = base_head * (1.25 - 0.25 * ratio**2) * speed**2
-        efficiency = peak_eff - 0.35 * (ratio - 1)**2
-        stages = math.ceil(load['head_m'] / stage_head)
-        installed_head = stages * stage_head
-        shaft = well.sg * 1000 * G * well.flow_bpd * BPD_TO_M3S * installed_head / efficiency / 1000
-        rows.append(dict(pump=name, stages=stages, relative_flow=ratio,
-                         efficiency=efficiency, installed_head_m=installed_head,
-                         shaft_kw=shaft, electrical_kw=shaft / motor_efficiency,
-                         minimum_motor_rating_kw=shaft * (1 + margin)))
+        stages = math.ceil(load['head_m'] / single_stage['stage_head_m'])
+        point = pump_point(well, name, frequency_hz, stages, well.flow_bpd)
+        rows.append(dict(pump=name, stages=stages,
+                         relative_flow=point['relative_flow'],
+                         efficiency=point['efficiency'],
+                         installed_head_m=point['installed_head_m'],
+                         shaft_kw=point['shaft_kw'],
+                         electrical_kw=point['shaft_kw'] / motor_efficiency,
+                         minimum_motor_rating_kw=point['shaft_kw'] * (1 + margin)))
     return sorted(rows, key=lambda row: row['electrical_kw'])

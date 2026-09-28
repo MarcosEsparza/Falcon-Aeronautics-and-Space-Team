@@ -1,50 +1,22 @@
 # ESP Design Intelligence
 
-A standalone Python/Streamlit demonstration for electric submersible pump (ESP)
-selection using first-principles liquid hydraulics and synthetic historical analogs.
-Everything lives in this folder; the existing aerospace repository is untouched.
-
-## Run
-
-Python 3.11 or newer:
-
-```bash
-cd esp-design-intelligence
-python -m venv .venv
-# macOS/Linux:
-source .venv/bin/activate
-# Windows PowerShell instead:
-# .venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
-```
-
-Run tests with `python -m pytest -q` from this folder. No API keys, model downloads,
-private well data, or external AI requests are required. Synthetic data are generated
-in memory on each run with a fixed random seed; CSV and design JSON downloads are
-available in the dashboard. The CSV contains 240 fictional wells by default.
+A standalone Python/Streamlit demonstration for electric submersible pump (ESP) selection using first-principles liquid hydraulics and synthetic historical analogs. Included pump and historical records are fictional demonstration data, not validated field designs. No API keys, model downloads, private well data, or external AI requests are required.
 
 ## What is implemented
 
-- Interactive liquid rate, pump vertical depth, measured tubing length, tubing
-  diameter, density, viscosity, boundary pressures, frequency and motor inputs.
-- Total dynamic head, Darcy friction, Reynolds number, hydraulic power, stage count,
-  pump shaft power, electrical input and minimum motor shaft-power rating.
+- Interactive liquid rate, pump vertical depth, measured tubing length, tubing diameter, density, viscosity, boundary pressures, frequency and motor inputs.
+- Total dynamic head, Darcy friction, Reynolds number, hydraulic power, stage count, pump shaft power, electrical input and minimum motor shaft-power rating.
 - Three explicitly fictional pump families and frequency affinity scaling.
 - Rate sensitivity chart, pump eligibility screening and transparent ranking.
 - Standardized k-nearest-neighbor classification and historical comparison table.
-- Reproducible CSV export and JSON design export with input assumptions.
-- Input validation, no-positive-head handling, unsupported-flow handling and
-  out-of-range historical feature warnings.
+- Reproducible CSV export and JSON design export with input assumptions. The CSV contains 240 fictional wells by default.
+- Input validation, no-positive-head handling, unsupported-flow handling and out-of-range historical feature warnings.
 
 ## Governing model and units
 
-The boundary runs from pump intake to wellhead. All internal calculations use SI.
-One barrel = 0.158987294928 m³; one foot = 0.3048 m;
-one psi = 6894.757293168 Pa; gravity = 9.80665 m/s².
-Pressure inputs must share the same gauge datum. Liquid density = SG × 1000 kg/m³.
+The boundary runs from pump intake to wellhead. All internal calculations use SI. One barrel = 0.158987294928 m³; one foot = 0.3048 m; one psi = 6894.757293168 Pa; gravity = 9.80665 m/s². Pressure inputs must share the same gauge datum. Liquid density = SG × 1000 kg/m³.
 
-```
+```text
 Q = liquid volume rate
 v = Q / (pi D² / 4)
 Re = rho v D / mu
@@ -53,14 +25,13 @@ H = vertical depth + (p_wellhead - p_intake)/(rho g) + h_f
 P_hydraulic = rho g Q H
 ```
 
-H is clamped to zero when the balance requires no pump head. That condition is not
-proof of natural-flow capability. Friction uses the Darcy factor, not Fanning:
-64/Re below 2300, Haaland above 4000, linear interpolation between those limits.
-Roughness is fixed at 0.045 mm. No fittings or minor losses are included.
+H is clamped to zero when the balance requires no pump head. That condition is not proof of natural-flow capability. Friction uses the Darcy factor, not Fanning: 64/Re below 2300, Haaland above 4000, and linear interpolation between those limits. Roughness is fixed at 0.045 mm. No fittings or minor losses are included.
+
+## Synthetic pump-model assumptions
 
 For speed ratio s = frequency/60 and relative flow r = Q/(Q_BEP × s):
 
-```
+```text
 h_stage = h_BEP × (1.25 - 0.25 r²) × s²
 eta_pump = eta_peak - 0.35 (r - 1)²
 stages = ceil(H / h_stage)
@@ -69,49 +40,58 @@ P_electrical = P_shaft / eta_motor
 minimum_motor_rating = P_shaft × (1 + margin)
 ```
 
-These curve coefficients and the 0.70–1.20 relative-flow screening band are demo
-assumptions, not manufacturer data or acceptance standards. Stage rounding means
-the installed head can exceed the required head at the prescribed flow. Actual
-flow needs a pump/system intersection and reservoir inflow model; this application
-does not solve that intersection or choose a commercially available motor size.
-Cable and variable-speed-drive losses are omitted.
+These curve coefficients and the 0.70–1.20 relative-flow screening band are demonstration assumptions, not manufacturer data or acceptance standards. Stage rounding means installed head can exceed required head at the prescribed flow. Actual flow requires a pump/system intersection and reservoir inflow model; this application does not solve that intersection or select a commercially available motor size. Cable and variable-speed-drive losses are omitted.
 
-## AI method and evidence limits
+## Historical comparison methodology
 
-The classifier uses equal-weight Euclidean distances after dividing each feature
-by its historical population standard deviation. Features: rate, depth, SG,
-viscosity, intake pressure and tubing diameter. The selected neighbors vote on pump
-labels generated by the same engineering screening engine at 60 Hz. Ties follow
-stable source order. It is an illustrative instance-based machine-learning model,
-not a language model or an independently validated optimizer.
+The classifier uses equal-weight Euclidean distances after dividing each feature by its historical population standard deviation. Features are rate, depth, SG, viscosity, intake pressure and tubing diameter. Selected neighbors vote on pump labels generated by the same engineering screening engine at 60 Hz; ties follow stable source order. This is an illustrative instance-based machine-learning model, not a language model or independently validated optimizer.
 
-The recommendation is deliberately separate from current-frequency engineering
-eligibility. The model omits wellhead pressure and tubing length from its distance
-features, so physically important differences can remain. A neighbor vote share is
-not a calibrated confidence, lifetime estimate or success probability. Synthetic
-labels cannot establish real-world accuracy; no field-performance claim is made.
-Feature range warnings identify simple extrapolation, not all unfamiliar joint
-conditions. No historical run-life or failure outcomes are fabricated.
+The historical recommendation is deliberately separate from current-frequency engineering eligibility. The distance model omits wellhead pressure and tubing length, so physically important differences can remain. Neighbor vote share is not calibrated confidence, a lifetime estimate or a success probability. Synthetic labels cannot establish real-world accuracy. Feature-range warnings identify simple extrapolation, not every unfamiliar joint condition. No historical run-life or failure outcomes are fabricated.
 
-The model assumes steady, incompressible, single-phase flow, equal endpoint
-velocity heads, and constant fluid properties. It does not evaluate multiphase
-outflow, free gas, net positive suction head/cavitation, viscosity-related pump
-performance losses, reservoir drawdown, motor cooling, temperature, electrical
-cable sizing, casing clearance, thrust, maximum stage count, materials or erosion.
-Those checks and validated manufacturer curves are required before field use.
+## Engineering limitations and validation
 
-## Structure and validation
+The model assumes steady, incompressible, single-phase flow, equal endpoint velocity heads and constant fluid properties. It does not evaluate multiphase outflow, free gas, net positive suction head or cavitation, viscosity-related pump performance losses, reservoir drawdown, motor cooling, temperature, electrical cable sizing, casing clearance, thrust, maximum stage count, materials or erosion. Validated manufacturer curves and engineering review of these checks are required before field use. Passing software tests does not validate field performance.
 
-`engineering.py` owns all engineering calculations and pump screening.
-`history.py` owns the synthetic population and neighbor model. `app.py` contains
-the presentation only. `tests/` checks the independent laminar Poiseuille result,
-energy/power balances, pressure signs, monotonic friction, invalid inputs, stage
-rounding, affinity scaling, unsupported conditions, reproducible history, neighbor
-identity and Streamlit interactions. Tests are not field validation.
+`engineering.py` owns all engineering calculations and pump screening. `history.py` owns the synthetic population and neighbor model. `app.py` contains presentation only. `tests/` checks the independent laminar Poiseuille result, energy and power balances, pressure signs, monotonic friction, invalid inputs, stage rounding, affinity scaling, unsupported conditions, reproducible history, neighbor identity and Streamlit interactions. Streamlit testing API reference: https://docs.streamlit.io/develop/api-reference/app-testing/st.testing.v1.apptest.
 
-Streamlit testing API reference:
-https://docs.streamlit.io/develop/api-reference/app-testing/st.testing.v1.apptest
+Dependency ranges are in `requirements.txt`; `requirements-tested.txt` records the exact direct package versions verified in the referenced delivery, not a complete transitive dependency lock. No project textbook PDFs or proprietary data are redistributed.
 
-Dependency ranges are in requirements.txt; requirements-tested.txt records the
-exact direct package versions used for this delivery, not a full transitive lock.
-No project textbook PDFs or proprietary data are redistributed.
+## Local development
+
+From the `esp-design-intelligence` directory:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+```
+
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
+
+## Run
+
+Run from the repository root so the root Streamlit theme is applied:
+
+```bash
+python -m streamlit run esp-design-intelligence/app.py
+```
+
+## Compile and test
+
+From the `esp-design-intelligence` directory:
+
+```bash
+python -m compileall -q app.py engineering.py history.py tests
+python -m pytest -q
+```
+
+Tests validate software behavior, not field performance.
+
+## Startup check and screenshots
+
+Start Streamlit on port 8501, then run `python tests/capture_screenshots.py`. The check waits for the application heading and Design Snapshot, rejects horizontal overflow, and writes full-page 390 × 844 mobile and 1440 × 900 desktop screenshots to `artifacts/screenshots/`. Override defaults with `ESP_APP_URL` or `SCREENSHOT_DIR`.
+
+The **ESP quality checks** workflow runs for every pull request and manual dispatch. Open a run summary and download the `esp-browser-screenshots` artifact, retained for 14 days. Review the images; artifact creation alone is not visual approval.
+
+For a framework-neutral new-repository checklist, see [`../DEVELOPMENT_TEMPLATE.md`](../DEVELOPMENT_TEMPLATE.md).

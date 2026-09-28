@@ -1,4 +1,8 @@
+# Direct dependency versions verified by the successful PR #8 GitHub Actions run.
+# This tested-version reference is not a complete transitive dependency lock.
 streamlit==1.64.0
-numpy==2.3.5
-pandas==2.2.3
+altair==6.3.0
+numpy==2.4.6
+pandas==2.3.3
 pytest==9.1.1
+playwright==1.63.0
